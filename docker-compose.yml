@@ -1,0 +1,76 @@
+# Local stack: MySQL + the application on Tomcat.
+#
+#   docker compose up -d --build     start (app on http://localhost:8090/hms/)
+#   docker compose logs -f app       follow application logs
+#   docker compose down              stop, keeping the database volume
+#   docker compose down -v           stop and wipe the database, so the seed data re-runs
+#
+# The app is published on 8090 rather than Tomcat's usual 8080, because Jenkins
+# also defaults to 8080 and the two cannot share a port. Override if you prefer:
+#   APP_PORT=9000 docker compose up -d
+#
+# Jenkins is behind a profile so the everyday stack stays small:
+#   docker compose --profile ci up -d jenkins
+
+services:
+
+  mysql:
+    image: mysql:8.4
+    container_name: hms-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: hospital_db
+      MYSQL_USER: hms_user
+      MYSQL_PASSWORD: hms_password
+    ports:
+      # Exposed so you can point a local MySQL client at it; the app talks over
+      # the compose network and does not rely on this mapping.
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot_password"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hms-app
+    restart: unless-stopped
+    # Tomcat only starts once MySQL reports healthy, otherwise the first
+    # connection attempt races the database's own initialisation.
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_URL: "jdbc:mysql://mysql:3306/hospital_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+      DB_USERNAME: hms_user
+      DB_PASSWORD: hms_password
+    ports:
+      # Host port is configurable; the container always serves on 8080.
+      - "${APP_PORT:-8090}:8080"
+
+  # Optional CI server, for running the pipeline locally end to end.
+  jenkins:
+    image: jenkins/jenkins:lts-jdk17
+    container_name: hms-jenkins
+    profiles: ["ci"]
+    restart: unless-stopped
+    user: root
+    environment:
+      JAVA_OPTS: "-Djenkins.install.runSetupWizard=false"
+    ports:
+      - "8081:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins-data:/var/jenkins_home
+
+volumes:
+  mysql-data:
+  jenkins-data:

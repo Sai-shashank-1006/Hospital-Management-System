@@ -1,0 +1,55 @@
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%--
+  Shared page chrome. Flash messages are read out of the session and immediately
+  removed so that refreshing the page does not show them a second time.
+--%>
+<c:set var="ctx" value="${pageContext.request.contextPath}" />
+<c:set var="flashSuccess" value="${sessionScope.flashSuccess}" />
+<c:set var="flashError" value="${sessionScope.flashError}" />
+<c:remove var="flashSuccess" scope="session" />
+<c:remove var="flashError" scope="session" />
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${empty pageTitle ? 'Hospital Management System' : pageTitle}</title>
+  <link rel="stylesheet" href="${ctx}/css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="${ctx}/dashboard">
+      <span class="brand-mark" aria-hidden="true">+</span>
+      <span>Hospital Management System</span>
+    </a>
+    <nav class="nav">
+      <a href="${ctx}/dashboard" class="${activeNav == 'dashboard' ? 'active' : ''}">Dashboard</a>
+      <a href="${ctx}/patients/" class="${activeNav == 'patients' ? 'active' : ''}">Patients</a>
+      <a href="${ctx}/doctors/" class="${activeNav == 'doctors' ? 'active' : ''}">Doctors</a>
+      <a href="${ctx}/appointments/" class="${activeNav == 'appointments' ? 'active' : ''}">Appointments</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <c:if test="${not empty flashSuccess}">
+    <div class="alert alert-success" role="status"><c:out value="${flashSuccess}" /></div>
+  </c:if>
+  <c:if test="${not empty flashError}">
+    <div class="alert alert-error" role="alert"><c:out value="${flashError}" /></div>
+  </c:if>
+
+  <c:if test="${not empty errors}">
+    <div class="alert alert-error" role="alert">
+      <strong>Please correct the following:</strong>
+      <ul>
+        <c:forEach var="error" items="${errors}">
+          <li><c:out value="${error}" /></li>
+        </c:forEach>
+      </ul>
+    </div>
+  </c:if>
