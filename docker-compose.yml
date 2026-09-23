@@ -31,10 +31,16 @@ services:
       - mysql-data:/var/lib/mysql
       - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot_password"]
-      interval: 10s
+      # Query over TCP against the real database, not "mysqladmin ping".
+      # The entrypoint runs the init scripts against a temporary server on a unix
+      # socket and then restarts; a ping can pass during that window, so the app
+      # would start against a server that is about to go away. Selecting from a
+      # seeded table over 127.0.0.1 only succeeds once the real server is serving.
+      test: ["CMD", "mysql", "-h", "127.0.0.1", "-uhms_user", "-phms_password",
+             "-e", "SELECT 1 FROM hospital_db.invoice_sequence LIMIT 1"]
+      interval: 5s
       timeout: 5s
-      retries: 12
+      retries: 24
       start_period: 40s
 
   app:

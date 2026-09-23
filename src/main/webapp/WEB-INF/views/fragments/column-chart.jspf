@@ -1,0 +1,39 @@
+<%--
+  Column chart for a single series over time.
+
+  Expects:
+    chartSeries  - a com.hms.web.ChartSeries
+    chartTitle   - heading text
+    chartNote    - optional caption
+
+  Columns grow from a shared baseline, with the value on the cap. As with the bar
+  chart there is one series and therefore one colour and no legend; the month sits
+  under each column so identity never rests on colour.
+--%>
+<section class="chart">
+  <div class="chart-head">
+    <h3>${chartTitle}</h3>
+    <c:if test="${not empty chartNote}">
+      <p class="chart-note">${chartNote}</p>
+    </c:if>
+  </div>
+
+  <c:choose>
+    <c:when test="${empty chartSeries.points or chartSeries.allZero}">
+      <p class="chart-empty">No data recorded yet.</p>
+    </c:when>
+    <c:otherwise>
+      <div class="columns">
+        <c:forEach var="point" items="${chartSeries.points}">
+          <div class="column-slot">
+            <span class="column-value num">${point.display}</span>
+            <div class="column-track">
+              <div class="column-fill" style="height: ${point.percent}%"></div>
+            </div>
+            <span class="column-label"><c:out value="${point.label}" /></span>
+          </div>
+        </c:forEach>
+      </div>
+    </c:otherwise>
+  </c:choose>
+</section>

@@ -1,0 +1,43 @@
+<%--
+  Horizontal bar chart for a single series.
+
+  Expects:
+    chartSeries  - a com.hms.web.ChartSeries
+    chartTitle   - heading text; it names what is plotted, which is why there is
+                   no legend: one series means one colour, and a one-swatch
+                   legend would only restate the title.
+    chartNote    - optional caption under the title
+
+  Bar length carries the magnitude, so every bar uses the same hue. Each value is
+  direct-labelled at the tip, so nothing depends on reading a colour, and the
+  figures stay available to a screen reader as ordinary text.
+--%>
+<section class="chart">
+  <div class="chart-head">
+    <h3>${chartTitle}</h3>
+    <c:if test="${not empty chartNote}">
+      <p class="chart-note">${chartNote}</p>
+    </c:if>
+  </div>
+
+  <c:choose>
+    <c:when test="${empty chartSeries.points or chartSeries.allZero}">
+      <p class="chart-empty">No data recorded yet.</p>
+    </c:when>
+    <c:otherwise>
+      <ul class="bars">
+        <c:forEach var="point" items="${chartSeries.points}">
+          <li class="bar-row">
+            <span class="bar-label" title="<c:out value='${point.label}' />">
+              <c:out value="${point.label}" />
+            </span>
+            <span class="bar-track">
+              <span class="bar-fill" style="width: ${point.percent}%"></span>
+            </span>
+            <span class="bar-value num">${point.display}</span>
+          </li>
+        </c:forEach>
+      </ul>
+    </c:otherwise>
+  </c:choose>
+</section>

@@ -100,6 +100,10 @@ public class PatientServlet extends BaseServlet {
         p.setEmail(trimmed(req, "email"));
         p.setAddress(trimmed(req, "address"));
         p.setBloodGroup(trimmed(req, "bloodGroup"));
+        p.setInsuranceProvider(trimmed(req, "insuranceProvider"));
+        p.setInsuranceNumber(trimmed(req, "insuranceNumber"));
+        p.setAllergies(trimmed(req, "allergies"));
+        p.setMedicalHistory(trimmed(req, "medicalHistory"));
         return p;
     }
 
@@ -119,6 +123,11 @@ public class PatientServlet extends BaseServlet {
         }
         if (p.getDateOfBirth() != null && p.getDateOfBirth().isAfter(java.time.LocalDate.now())) {
             errors.add("Date of birth cannot be in the future.");
+        }
+        // A policy number without a provider cannot be acted on, so catch it here
+        // rather than storing a half-filled insurance record.
+        if (p.getInsuranceNumber() != null && p.getInsuranceProvider() == null) {
+            errors.add("An insurance policy number needs a provider as well.");
         }
         return errors;
     }

@@ -83,8 +83,9 @@ public class PatientDAO {
     /** Inserts the patient and returns it with the generated id populated. */
     public Patient insert(Patient patient) {
         String sql = "INSERT INTO patients "
-                + "(full_name, gender, date_of_birth, phone, email, address, blood_group) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+                + "(full_name, gender, date_of_birth, phone, email, address, blood_group, "
+                + "insurance_provider, insurance_number, allergies, medical_history) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection c = dataSource.getConnection();
              PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -106,14 +107,16 @@ public class PatientDAO {
     public boolean update(Patient patient) {
         String sql = "UPDATE patients SET "
                 + "full_name = ?, gender = ?, date_of_birth = ?, phone = ?, "
-                + "email = ?, address = ?, blood_group = ? "
+                + "email = ?, address = ?, blood_group = ?, "
+                + "insurance_provider = ?, insurance_number = ?, allergies = ?, "
+                + "medical_history = ? "
                 + "WHERE id = ?";
 
         try (Connection c = dataSource.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
 
             bind(ps, patient);
-            ps.setInt(8, patient.getId());
+            ps.setInt(12, patient.getId());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             throw new DataAccessException("Failed to update patient " + patient.getId(), e);
@@ -152,6 +155,10 @@ public class PatientDAO {
         ps.setString(5, p.getEmail());
         ps.setString(6, p.getAddress());
         ps.setString(7, p.getBloodGroup());
+        ps.setString(8, p.getInsuranceProvider());
+        ps.setString(9, p.getInsuranceNumber());
+        ps.setString(10, p.getAllergies());
+        ps.setString(11, p.getMedicalHistory());
     }
 
     private Patient map(ResultSet rs) throws SQLException {
@@ -167,6 +174,10 @@ public class PatientDAO {
         p.setEmail(rs.getString("email"));
         p.setAddress(rs.getString("address"));
         p.setBloodGroup(rs.getString("blood_group"));
+        p.setInsuranceProvider(rs.getString("insurance_provider"));
+        p.setInsuranceNumber(rs.getString("insurance_number"));
+        p.setAllergies(rs.getString("allergies"));
+        p.setMedicalHistory(rs.getString("medical_history"));
         return p;
     }
 }

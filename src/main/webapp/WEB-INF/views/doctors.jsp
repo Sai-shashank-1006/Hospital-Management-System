@@ -55,7 +55,8 @@
                 <div class="actions">
                   <a class="btn-link" href="${ctx}/doctors/edit?id=${d.id}">Edit</a>
                   <form class="inline-form" method="post" action="${ctx}/doctors/delete"
-                        onsubmit="return confirm('Remove this doctor? Their appointments will be removed too.');">
+                        data-confirm="Remove this doctor? Their appointments will be removed too.">
+                    <input type="hidden" name="csrfToken" value="${csrfToken}">
                     <input type="hidden" name="id" value="${d.id}">
                     <button class="btn-link danger" type="submit">Delete</button>
                   </form>

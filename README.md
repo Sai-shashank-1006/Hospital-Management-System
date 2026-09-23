@@ -27,14 +27,63 @@ The application is a classic Servlet/JSP web app packaged as a WAR, backed by My
 
 | Area | What it does |
 |---|---|
-| **Dashboard** | Counts of patients, doctors and appointments, plus the next five bookings. |
-| **Patients** | Register, edit and delete patients; search by name, phone or email. |
-| **Doctors** | Manage the consulting roster, fees, and whether each doctor is accepting appointments. |
-| **Appointments** | Book, reschedule, complete and cancel appointments. Prevents double-booking a doctor for the same time slot. |
+| **Authentication** | Username/password sign-in with PBKDF2-hashed passwords, session timeout and CSRF protection. |
+| **Role-based access** | Three roles — Administrator, Doctor, Receptionist — enforced on every request. |
+| **Dashboard** | Counts and upcoming bookings, tailored to the signed-in role. |
+| **Patients** | Register, edit and delete patients, including insurance and medical history; search by name, phone or email. |
+| **Doctors** | Consulting roster with fees, room, weekly schedule and availability. |
+| **Appointments** | Book, reschedule, complete and cancel. Prevents double-booking a doctor for the same slot. |
+| **Prescriptions** | Record diagnosis and medicines per consultation. Doctors see only their own. |
+| **Billing** | Invoices with line items, tax and status. Generate one from an appointment to pre-fill the consultation fee. |
+| **Reports** | Operational and clinical analytics: monthly trends, busiest doctors, revenue, patient demographics, top medicines. |
+| **Staff accounts** | Administrators create and manage sign-in accounts. |
 | **Health endpoint** | `GET /hms/health` returns JSON reporting application and database status. The pipeline uses it as a post-deployment smoke test. |
 
 Server-side validation covers required fields, phone and email format, future-dated
-births, negative fees, and past-dated bookings.
+births, negative fees, past-dated bookings, double-booking, invalid consulting
+windows, incomplete insurance records, and empty prescriptions or invoices.
+
+### Roles
+
+| Role | May reach |
+|---|---|
+| **Administrator** | Everything, including staff accounts and the doctor roster. |
+| **Doctor** | Patients, appointments, prescriptions, reports. Not billing, the roster, or accounts. Sees only their own prescriptions. |
+| **Receptionist** | Patients, appointments, billing, reports. Not prescriptions — prescribing is a medical act. |
+
+Roles are defined once in [`Role.java`](src/main/java/com/hms/model/Role.java). The
+navigation menu and the request filter both ask the same `canAccess` method, so a
+hidden menu item and a blocked URL can never disagree. Hiding a link is a
+convenience; [`AuthFilter`](src/main/java/com/hms/web/AuthFilter.java) is the control.
+
+### Default accounts
+
+On first start, when the users table is empty, three accounts are created:
+
+| Username | Password | Role |
+|---|---|---|
+| `admin` | `admin123` | Administrator |
+| `dr.menon` | `doctor123` | Doctor |
+| `reception` | `reception123` | Receptionist |
+
+> **These are development credentials.** Change them before the system holds real
+> data. Set `HMS_BOOTSTRAP_ADMIN_PASSWORD` to choose the administrator password, or
+> `HMS_BOOTSTRAP=false` to skip seeding entirely. Once any account exists, the
+> bootstrap never runs again.
+
+### Security measures
+
+| Measure | Where |
+|---|---|
+| Passwords hashed with PBKDF2-HMAC-SHA256, per-password salt, 210,000 iterations | `PasswordHasher` |
+| Constant-time hash and token comparison | `PasswordHasher`, `CsrfToken` |
+| Session fixation prevented — a new session is issued on sign-in | `SessionUser.signIn` |
+| CSRF token required on every state-changing request | `AuthFilter` |
+| Identical error for unknown user, wrong password and disabled account | `LoginServlet` |
+| SQL injection prevented — every query is a parameterised `PreparedStatement` | all DAOs |
+| Output escaped through JSTL `<c:out>` | all views |
+| CSP, `X-Frame-Options`, `nosniff`, `Referrer-Policy` | `SecurityHeadersFilter` |
+| Authenticated pages marked no-store, so Back after sign-out shows nothing | `AuthFilter` |
 
 ---
 
@@ -66,23 +115,62 @@ births, negative fees, and past-dated bookings.
 ├── Dockerfile                   Multi-stage build: Maven -> Tomcat
 ├── docker-compose.yml           Local stack (MySQL + app, optional Jenkins)
 ├── pom.xml                      Maven build
-├── docker/mysql/init/           Schema + seed data, run on first MySQL startup
+├── docker/mysql/init/           01-schema.sql, 02-seed.sql - run on first MySQL startup
+├── scripts/                     Database backup and restore
 ├── docs/PROJECT-REPORT.md       Written project report
 └── src/
     ├── main/
     │   ├── java/com/hms/
     │   │   ├── config/          Settings resolution (env -> system property -> file)
     │   │   ├── db/              HikariCP connection pool
-    │   │   ├── model/           Patient, Doctor, Appointment
+    │   │   ├── model/           Patient, Doctor, Appointment, Prescription, Invoice, User, Role
     │   │   ├── dao/             JDBC data access
-    │   │   └── web/             Servlets
+    │   │   ├── security/        Password hashing, CSRF, session, account bootstrap
+    │   │   └── web/             Servlets and filters
     │   ├── resources/           application.properties
     │   └── webapp/
     │       ├── WEB-INF/views/   JSP views (not directly reachable by URL)
     │       ├── WEB-INF/web.xml  Error pages and session config
-    │       └── css/
+    │       ├── css/
+    │       └── js/app.js        Progressive enhancement only
     └── test/                    JUnit 5 tests + H2 schema
 ```
+
+---
+
+## Database backups
+
+`mysqldump` with `--single-transaction`, so the application keeps serving while the
+backup runs.
+
+```bash
+./scripts/backup-db.sh                      # Linux / macOS
+.\scripts\backup-db.ps1                     # Windows
+./scripts/restore-db.sh backups/hospital_db-20260923-020000.sql.gz
+```
+
+Backups are timestamped, gzipped, and pruned after `RETENTION_DAYS` (default 14).
+The script checks the dump is a plausible size before declaring success, because a
+dump that failed midway can still leave a small, valid-looking file.
+
+Schedule it nightly:
+
+```bash
+# Linux
+0 2 * * * cd /opt/hms && ./scripts/backup-db.sh >> /var/log/hms-backup.log 2>&1
+```
+```powershell
+# Windows
+schtasks /create /tn "HMS backup" /tr "powershell -File C:\hms\scripts\backup-db.ps1" /sc daily /st 02:00
+```
+
+### Database migrations
+
+`docker/mysql/init/` only runs against an **empty** data volume, so it is the
+first-install path, not an upgrade path. Once a database holds real data, schema
+changes go in `db/migrations/` as numbered, forward-only files
+(`V2__add_referrals.sql`), applied in order and never edited once released. Keep
+`01-schema.sql` in step so a fresh install and a migrated one end up identical.
 
 ---
 
@@ -230,10 +318,24 @@ mvn clean package     # compile, test, and build target/hms.war
 mvn test              # tests only
 ```
 
-The 28 tests exercise the DAO layer against **H2 running in MySQL-compatibility
-mode**. That means `mvn test` needs no database server — important for CI, where
-provisioning MySQL just to run unit tests would make every build slower and more
-fragile. The same SQL the application issues against MySQL is what the tests run.
+The 83 tests exercise the DAO layer against **H2 running in MySQL-compatibility
+mode**, plus the password hashing, access rules and billing arithmetic. That means
+`mvn test` needs no database server — important for CI, where provisioning MySQL
+just to run unit tests would make every build slower and more fragile. The same SQL
+the application issues against MySQL is what the tests run.
+
+| Suite | Tests | Covers |
+|---|---:|---|
+| `PatientDAOTest` | 9 | CRUD, search, null handling, ordering |
+| `DoctorDAOTest` | 6 | CRUD, availability filtering, fee defaults |
+| `AppointmentDAOTest` | 8 | Conflicts, cancelled slots, cascade deletes |
+| `PrescriptionDAOTest` | 9 | Header + medicines in one transaction, per-doctor scoping |
+| `InvoiceDAOTest` | 13 | Numbering, totals, status, cascades |
+| `UserDAOTest` | 11 | Accounts, password changes, admin counting |
+| `InvoiceTest` | 8 | Money arithmetic and rounding |
+| `RoleTest` | 7 | Access rules per role |
+| `PasswordHasherTest` | 7 | Hashing, salting, malformed input |
+| `AppConfigTest` | 5 | Settings resolution order |
 
 Coverage report after a build: `target/site/jacoco/index.html`.
 
@@ -250,10 +352,23 @@ that picks `bat` or `sh`, so the pipeline runs on a Windows or Linux agent.
 | **Build** | `mvn clean compile`. | every branch |
 | **Test** | `mvn test`, publishes JUnit results and the JaCoCo report. | every branch |
 | **Package** | `mvn package -DskipTests`, archives `hms.war` as a build artifact. | every branch |
-| **Deploy to Tomcat** | Uploads the WAR to the Tomcat Manager API with `update=true`. | `main` only |
+| **Deploy to Tomcat** | Saves the currently-live WAR, then uploads the new one via the Tomcat Manager API. | `main` only |
 | **Smoke test** | Polls `/hms/health` up to 20 times until it reports `UP`. | `main` only |
+| **Promote** | Records this WAR as the known-good version to roll back to. | `main` only |
+| **Rollback** (on failure) | Redeploys the last known-good WAR if a deployment failed its smoke test. | `main` only |
 
-Three deliberate choices worth noting:
+### Rollback
+
+The deploy stage copies the currently-live WAR aside *before* replacing it. Without
+that there is nothing to roll back **to**, which is why a rollback stage bolted onto
+the end of a pipeline usually cannot work. If the smoke test then fails, the `post`
+block redeploys the saved WAR and re-checks health.
+
+Rollback runs only when a deployment actually reached the server and then failed —
+a compile or test failure never got that far, so redeploying over a healthy server
+would be wrong. The first ever build has nothing saved and says so.
+
+Four deliberate choices worth noting:
 
 - **Compile and test run before packaging.** A failing test can never produce a
   WAR that might be deployed by accident.

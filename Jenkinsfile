@@ -125,6 +125,21 @@ pipeline {
                 branch 'main'
             }
             steps {
+                // Keep the WAR that is currently live before replacing it. Without
+                // this there is nothing to roll back TO, which is why a rollback
+                // stage bolted on at the end of a pipeline usually cannot work.
+                script {
+                    env.ROLLBACK_WAR = ''
+                    def previous = "${env.JENKINS_HOME}/hms-last-good/hms.war"
+
+                    if (fileExists(previous)) {
+                        env.ROLLBACK_WAR = previous
+                        echo "Previous known-good WAR available for rollback: ${previous}"
+                    } else {
+                        echo 'No previous known-good WAR yet; this build cannot roll back.'
+                    }
+                }
+
                 withCredentials([
                     usernamePassword(credentialsId: 'tomcat-manager',
                                      usernameVariable: 'TOMCAT_USER',
@@ -179,9 +194,30 @@ pipeline {
                     if (!healthy) {
                         // A DOWN response usually means Tomcat started the app but it
                         // cannot reach MySQL, so show whatever the endpoint last returned.
+                        def last = capture("curl --silent ${env.HEALTH_URL}")
                         error("Application did not report healthy within 60 seconds. " +
-                              "Last response: ${capture("curl --silent ${env.HEALTH_URL}")}")
+                              "Last response: ${last}")
                     }
+                }
+            }
+        }
+
+        stage('Promote') {
+            when {
+                branch 'main'
+            }
+            steps {
+                // The smoke test passed, so this WAR becomes the one a future
+                // failed deployment rolls back to.
+                script {
+                    def store = "${env.JENKINS_HOME}/hms-last-good"
+                    if (isUnix()) {
+                        sh "mkdir -p '${store}' && cp target/hms.war '${store}/hms.war'"
+                    } else {
+                        bat "if not exist \"${store}\" mkdir \"${store}\" & " +
+                            "copy /Y target\\hms.war \"${store}\\hms.war\""
+                    }
+                    echo "Recorded build ${env.BUILD_NUMBER} as the known-good version."
                 }
             }
         }
@@ -191,9 +227,50 @@ pipeline {
         success {
             echo "Build ${env.BUILD_NUMBER} succeeded. Deployed to ${env.TOMCAT_URL}/${env.APP_NAME}/"
         }
+
         failure {
-            echo "Build ${env.BUILD_NUMBER} failed. See the stage log above for the failing step."
+            script {
+                // Roll back only when a deployment actually reached the server and
+                // then failed its smoke test. A compile or test failure never got
+                // that far, so redeploying over a healthy server would be wrong.
+                boolean deployed = currentBuild.result == 'FAILURE' && env.ROLLBACK_WAR
+                boolean onMain = env.BRANCH_NAME == null || env.BRANCH_NAME == 'main'
+
+                if (deployed && onMain) {
+                    echo "Deployment failed its smoke test. Rolling back to the last known-good WAR."
+
+                    withCredentials([
+                        usernamePassword(credentialsId: 'tomcat-manager',
+                                         usernameVariable: 'TOMCAT_USER',
+                                         passwordVariable: 'TOMCAT_PASS')
+                    ]) {
+                        if (isUnix()) {
+                            sh '''
+                                curl --fail --silent --show-error \
+                                     --upload-file "$ROLLBACK_WAR" \
+                                     --user "$TOMCAT_USER:$TOMCAT_PASS" \
+                                     "$TOMCAT_URL/manager/text/deploy?path=/$APP_NAME&update=true"
+                            '''
+                        } else {
+                            bat 'curl --fail --silent --show-error ' +
+                                '--upload-file "%ROLLBACK_WAR%" ' +
+                                '--user "%TOMCAT_USER%:%TOMCAT_PASS%" ' +
+                                '"%TOMCAT_URL%/manager/text/deploy?path=/%APP_NAME%&update=true"'
+                        }
+                    }
+
+                    def body = capture("curl --silent ${env.HEALTH_URL}")
+                    if (body.contains('"status":"UP"')) {
+                        echo 'Rollback succeeded: the previous version is serving again.'
+                    } else {
+                        echo 'ROLLBACK DID NOT RECOVER THE SERVICE - manual intervention needed.'
+                    }
+                } else {
+                    echo "Build ${env.BUILD_NUMBER} failed before deployment; nothing to roll back."
+                }
+            }
         }
+
         cleanup {
             cleanWs()
         }

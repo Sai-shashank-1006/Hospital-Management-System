@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -70,8 +71,9 @@ public class DoctorDAO {
 
     public Doctor insert(Doctor doctor) {
         String sql = "INSERT INTO doctors "
-                + "(full_name, specialization, phone, email, consultation_fee, available) "
-                + "VALUES (?, ?, ?, ?, ?, ?)";
+                + "(full_name, specialization, phone, email, consultation_fee, available, "
+                + "available_days, available_from, available_to, room_number) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection c = dataSource.getConnection();
              PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -93,14 +95,15 @@ public class DoctorDAO {
     public boolean update(Doctor doctor) {
         String sql = "UPDATE doctors SET "
                 + "full_name = ?, specialization = ?, phone = ?, email = ?, "
-                + "consultation_fee = ?, available = ? "
+                + "consultation_fee = ?, available = ?, "
+                + "available_days = ?, available_from = ?, available_to = ?, room_number = ? "
                 + "WHERE id = ?";
 
         try (Connection c = dataSource.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
 
             bind(ps, doctor);
-            ps.setInt(7, doctor.getId());
+            ps.setInt(11, doctor.getId());
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             throw new DataAccessException("Failed to update doctor " + doctor.getId(), e);
@@ -138,6 +141,10 @@ public class DoctorDAO {
         ps.setString(4, d.getEmail());
         ps.setBigDecimal(5, d.getConsultationFee() == null ? BigDecimal.ZERO : d.getConsultationFee());
         ps.setBoolean(6, d.isAvailable());
+        ps.setString(7, d.getAvailableDays());
+        ps.setTime(8, d.getAvailableFrom() == null ? null : Time.valueOf(d.getAvailableFrom()));
+        ps.setTime(9, d.getAvailableTo() == null ? null : Time.valueOf(d.getAvailableTo()));
+        ps.setString(10, d.getRoomNumber());
     }
 
     private Doctor map(ResultSet rs) throws SQLException {
@@ -149,6 +156,15 @@ public class DoctorDAO {
         d.setEmail(rs.getString("email"));
         d.setConsultationFee(rs.getBigDecimal("consultation_fee"));
         d.setAvailable(rs.getBoolean("available"));
+        d.setAvailableDays(rs.getString("available_days"));
+
+        Time from = rs.getTime("available_from");
+        d.setAvailableFrom(from == null ? null : from.toLocalTime());
+
+        Time to = rs.getTime("available_to");
+        d.setAvailableTo(to == null ? null : to.toLocalTime());
+
+        d.setRoomNumber(rs.getString("room_number"));
         return d;
     }
 }

@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 /** Shared request-parsing and view-dispatch helpers for the application servlets. */
 public abstract class BaseServlet extends HttpServlet {
@@ -67,6 +68,19 @@ public abstract class BaseServlet extends HttpServlet {
         }
         try {
             return LocalDate.parse(value);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Parses the value of an {@code <input type="time">} field, e.g. "09:30". */
+    protected LocalTime timeParam(HttpServletRequest req, String name) {
+        String value = trimmed(req, name);
+        if (value == null) {
+            return null;
+        }
+        try {
+            return LocalTime.parse(value.length() > 5 ? value.substring(0, 5) : value);
         } catch (Exception e) {
             return null;
         }

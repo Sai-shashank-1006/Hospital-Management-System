@@ -17,6 +17,19 @@
   --warning-text: #8a5a05;
   --radius: 10px;
   --shadow: 0 1px 2px rgba(16, 32, 47, 0.06), 0 4px 12px rgba(16, 32, 47, 0.05);
+
+  /*
+   * Chart ink.
+   *
+   * Deliberately NOT the UI accent: --accent is tuned for buttons and links, and
+   * as a chart fill it measures too low in chroma on white (reads grey) and too
+   * light on the dark surface. This step was checked against both of this app's
+   * surfaces and clears the lightness band, the chroma floor and 3:1 contrast in
+   * each. Bar length encodes the value, so one hue serves every chart.
+   */
+  --chart-ink: #0d9488;
+  --chart-track: #eaeef5;
+  --chart-grid: #e1e5ee;
 }
 
 * {
@@ -480,6 +493,382 @@ textarea {
   font-size: 0.86rem;
 }
 
+/* ---------- Account chip in the top bar ---------- */
+
+.account {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 680;
+  font-size: 0.78rem;
+  flex: none;
+}
+
+.account-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.account-name {
+  font-weight: 600;
+  font-size: 0.86rem;
+}
+
+.account-role {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+/* ---------- Sign-in page ---------- */
+
+.login-body {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.login-shell {
+  width: 100%;
+  max-width: 420px;
+  padding: 32px 16px;
+}
+
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 30px 28px;
+}
+
+.login-head {
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.login-head h1 {
+  font-size: 1.22rem;
+  margin: 12px 0 4px;
+}
+
+.login-head p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.brand-mark-lg {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  font-size: 1.6rem;
+  margin: 0 auto;
+}
+
+.login-card .field {
+  margin-bottom: 15px;
+}
+
+.btn-block {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px;
+}
+
+.login-hint {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  font-size: 0.83rem;
+  color: var(--text-muted);
+}
+
+.login-hint strong {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--text);
+}
+
+.hint-table td {
+  padding: 2px 14px 2px 0;
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.8rem;
+}
+
+.login-foot {
+  text-align: center;
+  margin-top: 18px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+/* ---------- Charts ----------
+   Every chart plots a single series, so there is no legend: one series means one
+   colour, and the heading already names what is plotted. Each value is written
+   next to its mark, so nothing has to be decoded from colour alone. */
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.chart-head h3 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.chart-note {
+  margin: 3px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.chart-empty {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  padding: 24px 0;
+  text-align: center;
+}
+
+/* Horizontal bars */
+
+.bars {
+  list-style: none;
+  margin: 18px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  /* The gap is what separates neighbouring bars; no stroke is drawn around
+     them, which would add ink that is not data. */
+  gap: 10px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(80px, 30%) 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.bar-label {
+  font-size: 0.84rem;
+  color: var(--text-secondary, var(--text-muted));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bar-track {
+  display: block;
+  height: 14px;
+  background: var(--chart-track);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--chart-ink);
+  /* Square where it meets the baseline, rounded at the data end. */
+  border-radius: 0 4px 4px 0;
+  min-width: 2px;
+}
+
+.bar-value {
+  font-size: 0.84rem;
+  font-weight: 620;
+  min-width: 44px;
+  text-align: right;
+}
+
+/* Vertical columns */
+
+.columns {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+  /* Hairline baseline; recessive, never dashed. */
+  border-bottom: 1px solid var(--chart-grid);
+  padding-bottom: 0;
+}
+
+.column-slot {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.column-value {
+  font-size: 0.78rem;
+  font-weight: 620;
+  white-space: nowrap;
+}
+
+.column-track {
+  width: 100%;
+  max-width: 24px;
+  height: 120px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.column-fill {
+  width: 100%;
+  background: var(--chart-ink);
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+}
+
+.column-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  padding-top: 6px;
+}
+
+.stats-two {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  max-width: 520px;
+  margin-bottom: 18px;
+}
+
+.stat-note {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ---------- Documents (prescription / invoice) ---------- */
+
+.document .doc-head {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.doc-label {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
+.doc-value {
+  font-size: 1.05rem;
+  font-weight: 620;
+}
+
+.doc-section {
+  padding-top: 18px;
+}
+
+.doc-section p {
+  margin: 0;
+}
+
+.allergy-warning {
+  margin-top: 8px;
+  padding: 7px 11px;
+  border-radius: 8px;
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.total-row td {
+  border-top: 2px solid var(--border);
+  font-size: 1.02rem;
+}
+
+.right {
+  text-align: right;
+}
+
+/* ---------- Repeating item rows ---------- */
+
+.item-table input {
+  padding: 6px 9px;
+  font-size: 0.88rem;
+}
+
+.item-table td {
+  padding: 5px 6px;
+}
+
+.item-table thead th {
+  padding: 9px 6px;
+}
+
+/* ---------- Day picker ---------- */
+
+.day-picker {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.day-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.83rem;
+  font-weight: 560;
+  cursor: pointer;
+  background: var(--surface);
+}
+
+.day-option input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+}
+
+.alert-info {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+/* Visually hidden, still announced by screen readers. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* ---------- Dark mode ---------- */
 
 @media (prefers-color-scheme: dark) {
@@ -499,6 +888,16 @@ textarea {
     --warning-soft: #3a2c12;
     --warning-text: #fcd34d;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.22);
+
+    /* Dark mode is chosen, not an automatic inversion: this step was validated
+       against the dark surface, where the light-mode fill would be too light. */
+    --chart-ink: #0d9488;
+    --chart-track: #222c3d;
+    --chart-grid: #2a3547;
+  }
+
+  .day-option {
+    background: #1b2433;
   }
 
   thead th,

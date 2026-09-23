@@ -117,14 +117,20 @@ storage layer. Specifically:
 
 | ID | Requirement |
 |---|---|
-| FR-1 | Register, view, edit and delete patient records. |
+| FR-1 | Register, view, edit and delete patient records, including insurance and medical history. |
 | FR-2 | Search patients by name, phone number or email. |
-| FR-3 | Maintain a doctor roster including specialization, fee and availability. |
+| FR-3 | Maintain a doctor roster including specialization, fee, room and weekly schedule. |
 | FR-4 | Book an appointment between a patient and an available doctor. |
 | FR-5 | Reject a booking that would double-book a doctor at the same time. |
 | FR-6 | Mark appointments completed or cancelled. |
 | FR-7 | Display summary counts and upcoming appointments on a dashboard. |
 | FR-8 | Expose a health endpoint reporting application and database status. |
+| FR-9 | Require sign-in, and restrict each area by the user's role. |
+| FR-10 | Record prescriptions: diagnosis plus the medicines given at a consultation. |
+| FR-11 | Raise invoices with line items and tax, and generate one from an appointment. |
+| FR-12 | Track invoice status and report outstanding versus collected revenue. |
+| FR-13 | Provide operational and clinical analytics for administrators. |
+| FR-14 | Let administrators create and manage staff sign-in accounts. |
 
 ### 3.4 Non-functional requirements
 
@@ -135,6 +141,10 @@ storage layer. Specifically:
 | NFR-3 | The same artifact must run in any environment, configured externally. |
 | NFR-4 | Database credentials must not be hard-coded in the deployed artifact. |
 | NFR-5 | The interface must be usable on desktop and tablet screens. |
+| NFR-6 | Passwords must never be stored or logged in recoverable form. |
+| NFR-7 | The system must resist SQL injection, cross-site scripting and CSRF. |
+| NFR-8 | A failed deployment must roll back automatically. |
+| NFR-9 | The database must be backed up on a schedule, and restorable. |
 
 ---
 
@@ -256,6 +266,54 @@ All user-supplied values are rendered through JSTL's `<c:out>`, which escapes HT
 A patient whose name contains `<script>` is displayed as text rather than executed,
 preventing stored cross-site scripting.
 
+### 5.6 Authentication and access control
+
+Passwords are stored as PBKDF2-HMAC-SHA256 with a per-password random salt and
+210,000 iterations, in the form `pbkdf2_sha256$iterations$salt$hash`. Keeping the
+parameters inside the stored string means the iteration count can be raised later
+without invalidating existing passwords: an old hash still verifies with the count
+it was created with. Verification uses a constant-time comparison, because a
+comparison that exits early leaks information about the stored value through
+response timing.
+
+Access control is defined once, in the `Role` enum, as a set of URL prefixes per
+role. Both the request filter and the navigation menu ask the same `canAccess`
+method. This matters: if the menu were built from a separate list, the two could
+drift and a hidden link would not imply a blocked URL. Hiding a menu item is a
+convenience; `AuthFilter` is the control, and it sits in front of every request, so
+a servlet added later is protected without anyone remembering to annotate it.
+
+Three further details:
+
+- **Session fixation.** Signing in invalidates any existing session and starts a
+  new one, so a session identifier planted before sign-in is worthless afterwards.
+- **Username enumeration.** An unknown user, a wrong password and a disabled
+  account all produce the same message. Distinguishing them would let an attacker
+  discover which usernames exist.
+- **CSRF.** Every state-changing request must carry a token held on the session.
+  Without it, a page on another site could POST using the browser's session cookie,
+  which the browser attaches automatically.
+
+### 5.7 Transactions in billing and prescribing
+
+A prescription and an invoice are each written as a header row plus child rows, in
+one transaction. A prescription that saved its header but lost its medicines would
+be a clinically misleading record, and an invoice whose total disagreed with its
+line items would be an accounting error. Either all of it lands or none does.
+
+Invoice totals are never stored. Subtotal, tax and total are computed from the line
+items every time they are shown, so a total cannot drift out of step with the rows
+it is made of. Tax is applied per invoice before summing across invoices, matching
+how each invoice displays its own total — summing first and taxing after would round
+differently.
+
+Invoice numbers come from a dedicated counter table, locked with `SELECT ... FOR
+UPDATE` inside the same transaction. The obvious alternative, `MAX(invoice_number)`
+over the invoices themselves, hands the same number out twice once an invoice has
+been deleted, because the highest surviving number goes back down. Two invoices
+sharing a number is an accounting problem, not a cosmetic one. This was caught by a
+test written specifically to check it (Section 10).
+
 ---
 
 ## 6. Testing
@@ -283,15 +341,18 @@ server. This is a deliberate trade-off:
 | `PatientDAOTest` | 9 | CRUD, null date of birth, case-insensitive search across three columns, blank-term search, counts, ordering. |
 | `DoctorDAOTest` | 6 | CRUD, null fee defaulting to zero, availability filtering, roster ordering. |
 | `AppointmentDAOTest` | 8 | Joined names, conflict detection, cancelled slots freeing up, self-exclusion on edit, upcoming ordering and limit, status counts, cascade delete. |
+| `PrescriptionDAOTest` | 9 | Header and medicines saved as one unit, per-doctor scoping, wholesale item replacement on edit, cascade deletes. |
+| `InvoiceDAOTest` | 13 | Numbering including non-reuse after deletion, totals per status, payment stamping, item cascades. |
+| `UserDAOTest` | 11 | Accounts, lowercase usernames, password changes leaving the profile alone, active-administrator counting. |
+| `InvoiceTest` | 8 | Money arithmetic, half-up rounding to two places, outstanding and editable rules. |
+| `RoleTest` | 7 | What each role may reach, exact prefix matching, the sign-out regression guard. |
+| `PasswordHasherTest` | 7 | Round trip, per-password salting, rejection of malformed hashes, no plaintext in the stored value. |
 | `AppConfigTest` | 5 | Environment-variable name mapping, resolution order, numeric fallbacks. |
 
 Test result:
 
 ```
-Tests run: 5, Failures: 0, Errors: 0, Skipped: 0 -- AppConfigTest
-Tests run: 8, Failures: 0, Errors: 0, Skipped: 0 -- AppointmentDAOTest
-Tests run: 6, Failures: 0, Errors: 0, Skipped: 0 -- DoctorDAOTest
-Tests run: 9, Failures: 0, Errors: 0, Skipped: 0 -- PatientDAOTest
+Tests run: 83, Failures: 0, Errors: 0, Skipped: 0
 
 BUILD SUCCESS
 ```
@@ -448,19 +509,52 @@ Tomcat started while MySQL was still initialising. Docker's `depends_on` alone o
 waits for the container to start, not for the service inside it to be ready; a
 healthcheck with `condition: service_healthy` was required.
 
+Adding the account bootstrap then reintroduced the problem in a worse form. Creating
+the default accounts at startup made the connection pool initialise eagerly, and
+HikariCP fails fast by default: an unreachable database threw from a context
+listener, which permanently failed the deployment. Tomcat does not retry a failed
+deployment, so a database that was briefly unavailable left the application dead
+until someone redeployed it by hand. Two changes fixed it. The pool now defers
+connection errors to first use rather than failing at construction, so the
+application starts and honestly reports the database as `DOWN` through `/health` —
+which is exactly what the pipeline's smoke test exists to catch. The bootstrap
+itself is wrapped so it can never abort startup, and retries on first sign-in. The
+MySQL healthcheck was also changed from `mysqladmin ping` to a real query over TCP,
+because the entrypoint runs the init scripts against a temporary server and then
+restarts, and a ping can pass during that window.
+
+**Two bugs the tests and the live checks caught.** Both are worth recording because
+neither was visible by reading the code.
+
+The invoice numbering was originally derived from `MAX(invoice_number)`. The code
+comment even claimed this meant "a deleted invoice cannot cause a number to be
+reused" — the opposite of what it did, since deleting the highest invoice lowers the
+maximum. A test written to assert non-reuse failed immediately, and the fix was a
+dedicated counter table (Section 5.7).
+
+The second was found only by exercising the running application. Sign-out was
+deliberately removed from the public path list so that it would carry a CSRF token
+like any other state change. But `/logout` is not in the doctor or receptionist
+allow-lists, so the role check then rejected it: **two of the three roles could not
+sign out at all.** Administrators were unaffected, because their check short-circuits
+to true — so testing as an administrator alone would have missed it entirely. The
+filter now treats sign-out as authenticated-but-role-exempt, and `RoleTest` carries
+a regression guard explaining why.
+
 ---
 
 ## 11. Future enhancements
 
 | Enhancement | Rationale |
 |---|---|
-| Authentication and role-based access | Patient data is sensitive; the current system has no login. This is the most important next step. |
-| Staged environments | Deploy to a staging server first, promoting to production only after checks pass. |
-| Automated rollback | Redeploy the previous archived WAR automatically when a smoke test fails. |
-| Integration tests against real MySQL | Using Testcontainers, closing the H2/MySQL behavioural gap. |
+| HTTPS with HSTS | Sign-in currently travels in clear text unless a reverse proxy terminates TLS. This is the most important next step for any real deployment. |
+| Account lockout and rate limiting | Nothing currently slows repeated password guesses. |
+| Audit log | Who read or changed which patient record, which regulated environments require. |
+| Staged environments | Deploy to staging first, promoting to production only after checks pass. |
+| Integration tests against real MySQL | Using Testcontainers, closing the H2/MySQL behavioural gap and covering the servlet layer. |
 | Static analysis and dependency scanning | SonarQube and OWASP Dependency-Check as pipeline stages. |
-| Billing, pharmacy and lab modules | Broader hospital coverage. |
-| Medical history per patient | Currently only appointments are recorded, not outcomes. |
+| Pharmacy stock and laboratory results | Prescriptions are recorded but not dispensed against stock. |
+| Insurance claim workflow | Insurance details are captured but claims are not tracked. |
 
 ---
 

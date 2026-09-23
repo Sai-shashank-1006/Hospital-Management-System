@@ -6,5 +6,8 @@
   </div>
 </footer>
 
+<%-- Progressive enhancement only: every page works with this script blocked. --%>
+<script src="${ctx}/js/app.js"></script>
+
 </body>
 </html>

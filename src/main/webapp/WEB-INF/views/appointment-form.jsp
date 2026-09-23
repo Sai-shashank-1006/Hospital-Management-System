@@ -27,6 +27,7 @@
 
 <div class="card card-pad">
   <form method="post" action="${ctx}/appointments/save">
+    <input type="hidden" name="csrfToken" value="${csrfToken}">
     <input type="hidden" name="id" value="${appointment.id}">
 
     <div class="form-grid">

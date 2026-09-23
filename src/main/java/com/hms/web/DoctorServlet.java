@@ -97,6 +97,15 @@ public class DoctorServlet extends BaseServlet {
         d.setEmail(trimmed(req, "email"));
         d.setConsultationFee(decimalParam(req, "consultationFee", BigDecimal.ZERO));
         d.setAvailable(req.getParameter("available") != null);
+        d.setRoomNumber(trimmed(req, "roomNumber"));
+
+        // The day checkboxes post one value each; store them as a single
+        // comma-separated field, which is what the schedule column holds.
+        String[] days = req.getParameterValues("availableDays");
+        d.setAvailableDays(days == null || days.length == 0 ? null : String.join(",", days));
+
+        d.setAvailableFrom(timeParam(req, "availableFrom"));
+        d.setAvailableTo(timeParam(req, "availableTo"));
         return d;
     }
 
@@ -113,6 +122,13 @@ public class DoctorServlet extends BaseServlet {
         }
         if (d.getConsultationFee() != null && d.getConsultationFee().signum() < 0) {
             errors.add("Consultation fee cannot be negative.");
+        }
+        if (d.getAvailableFrom() != null && d.getAvailableTo() != null
+                && !d.getAvailableFrom().isBefore(d.getAvailableTo())) {
+            errors.add("The consulting window must end after it starts.");
+        }
+        if ((d.getAvailableFrom() == null) != (d.getAvailableTo() == null)) {
+            errors.add("Give both a start and an end time for the consulting window, or neither.");
         }
         return errors;
     }

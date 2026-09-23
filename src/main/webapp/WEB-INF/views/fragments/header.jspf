@@ -1,10 +1,18 @@
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%--
-  Shared page chrome. Flash messages are read out of the session and immediately
-  removed so that refreshing the page does not show them a second time.
+  Shared page chrome for signed-in pages.
+
+  Navigation asks Role.canAccess() for each item, which is the same method
+  AuthFilter uses to allow or deny the request. A hidden menu entry and a blocked
+  URL therefore can never disagree -- hiding the link is only a convenience.
+
+  Flash messages are read from the session and immediately removed, so refreshing
+  the page does not show them again.
 --%>
 <c:set var="ctx" value="${pageContext.request.contextPath}" />
+<c:set var="currentUser" value="${sessionScope.currentUser}" />
+<c:set var="csrfToken" value="${sessionScope.csrfToken}" />
 <c:set var="flashSuccess" value="${sessionScope.flashSuccess}" />
 <c:set var="flashError" value="${sessionScope.flashError}" />
 <c:remove var="flashSuccess" scope="session" />
@@ -25,12 +33,46 @@
       <span class="brand-mark" aria-hidden="true">+</span>
       <span>Hospital Management System</span>
     </a>
+
     <nav class="nav">
       <a href="${ctx}/dashboard" class="${activeNav == 'dashboard' ? 'active' : ''}">Dashboard</a>
-      <a href="${ctx}/patients/" class="${activeNav == 'patients' ? 'active' : ''}">Patients</a>
-      <a href="${ctx}/doctors/" class="${activeNav == 'doctors' ? 'active' : ''}">Doctors</a>
-      <a href="${ctx}/appointments/" class="${activeNav == 'appointments' ? 'active' : ''}">Appointments</a>
+
+      <c:if test="${currentUser.role.canAccess('/patients')}">
+        <a href="${ctx}/patients/" class="${activeNav == 'patients' ? 'active' : ''}">Patients</a>
+      </c:if>
+      <c:if test="${currentUser.role.canAccess('/doctors')}">
+        <a href="${ctx}/doctors/" class="${activeNav == 'doctors' ? 'active' : ''}">Doctors</a>
+      </c:if>
+      <c:if test="${currentUser.role.canAccess('/appointments')}">
+        <a href="${ctx}/appointments/" class="${activeNav == 'appointments' ? 'active' : ''}">Appointments</a>
+      </c:if>
+      <c:if test="${currentUser.role.canAccess('/prescriptions')}">
+        <a href="${ctx}/prescriptions/" class="${activeNav == 'prescriptions' ? 'active' : ''}">Prescriptions</a>
+      </c:if>
+      <c:if test="${currentUser.role.canAccess('/invoices')}">
+        <a href="${ctx}/invoices/" class="${activeNav == 'invoices' ? 'active' : ''}">Billing</a>
+      </c:if>
+      <c:if test="${currentUser.role.canAccess('/reports')}">
+        <a href="${ctx}/reports/" class="${activeNav == 'reports' ? 'active' : ''}">Reports</a>
+      </c:if>
+      <c:if test="${currentUser.role.canAccess('/users')}">
+        <a href="${ctx}/users/" class="${activeNav == 'users' ? 'active' : ''}">Staff</a>
+      </c:if>
     </nav>
+
+    <div class="account">
+      <span class="avatar" aria-hidden="true"><c:out value="${currentUser.initials}" /></span>
+      <span class="account-meta">
+        <span class="account-name"><c:out value="${currentUser.fullName}" /></span>
+        <span class="account-role"><c:out value="${currentUser.role.label}" /></span>
+      </span>
+      <%-- Sign-out is a POST carrying the CSRF token, so another site cannot
+           trigger it with a link or an image tag. --%>
+      <form method="post" action="${ctx}/logout" class="inline-form">
+        <input type="hidden" name="csrfToken" value="${csrfToken}">
+        <button class="btn-link" type="submit">Sign out</button>
+      </form>
+    </div>
   </div>
 </header>
 

@@ -46,6 +46,15 @@ public final class DataSourceProvider {
         config.setConnectionTimeout(AppConfig.getInt("db.pool.connectionTimeoutMs", 10_000));
         config.setPoolName("hms-pool");
 
+        // Build the pool even when the database is unreachable, instead of throwing
+        // from the constructor. Failing fast here would abort Tomcat's context
+        // startup, and Tomcat does not retry a failed deployment: a database that
+        // was briefly unavailable at deploy time would leave the application dead
+        // until someone redeployed it by hand. Deferring the error to the first
+        // real query means the app starts, serves /health, and reports the database
+        // as DOWN -- which is what the pipeline's smoke test is there to catch.
+        config.setInitializationFailTimeout(-1);
+
         return new HikariDataSource(config);
     }
 

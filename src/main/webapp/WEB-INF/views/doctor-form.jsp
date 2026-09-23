@@ -13,6 +13,7 @@
 
 <div class="card card-pad">
   <form method="post" action="${ctx}/doctors/save">
+    <input type="hidden" name="csrfToken" value="${csrfToken}">
     <input type="hidden" name="id" value="${doctor.id}">
 
     <div class="form-grid">
@@ -57,10 +58,46 @@
                min="0" step="0.01" value="${doctor.consultationFee}">
       </div>
 
+      <div class="field">
+        <label for="roomNumber">Consulting room</label>
+        <input type="text" id="roomNumber" name="roomNumber" maxlength="20"
+               value="<c:out value='${doctor.roomNumber}' />">
+      </div>
+
       <div class="field checkbox">
         <input type="checkbox" id="available" name="available" value="true"
                ${doctor.available ? 'checked' : ''}>
         <label for="available">Currently accepting appointments</label>
+      </div>
+
+    </div>
+
+    <h2 class="section-title">Weekly schedule</h2>
+    <div class="form-grid">
+
+      <div class="field full">
+        <label>Consulting days</label>
+        <div class="day-picker">
+          <c:forEach var="day" items="${['MON','TUE','WED','THU','FRI','SAT','SUN']}">
+            <label class="day-option">
+              <input type="checkbox" name="availableDays" value="${day}"
+                     ${doctor.worksOn(day) ? 'checked' : ''}>
+              <span>${day}</span>
+            </label>
+          </c:forEach>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="availableFrom">Consulting from</label>
+        <input type="time" id="availableFrom" name="availableFrom"
+               value="${doctor.fromInputValue}">
+      </div>
+
+      <div class="field">
+        <label for="availableTo">Consulting until</label>
+        <input type="time" id="availableTo" name="availableTo"
+               value="${doctor.toInputValue}">
       </div>
 
     </div>

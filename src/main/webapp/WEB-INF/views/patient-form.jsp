@@ -13,6 +13,7 @@
 
 <div class="card card-pad">
   <form method="post" action="${ctx}/patients/save">
+    <input type="hidden" name="csrfToken" value="${csrfToken}">
     <input type="hidden" name="id" value="${patient.id}">
 
     <div class="form-grid">
@@ -66,6 +67,36 @@
         <textarea id="address" name="address" maxlength="255"><c:out value="${patient.address}" /></textarea>
       </div>
 
+    </div>
+
+    <h2 class="section-title">Insurance</h2>
+    <div class="form-grid">
+      <div class="field">
+        <label for="insuranceProvider">Provider</label>
+        <input type="text" id="insuranceProvider" name="insuranceProvider" maxlength="120"
+               value="<c:out value='${patient.insuranceProvider}' />">
+      </div>
+
+      <div class="field">
+        <label for="insuranceNumber">Policy number</label>
+        <input type="text" id="insuranceNumber" name="insuranceNumber" maxlength="60"
+               value="<c:out value='${patient.insuranceNumber}' />">
+      </div>
+    </div>
+
+    <h2 class="section-title">Clinical background</h2>
+    <div class="form-grid">
+      <div class="field full">
+        <label for="allergies">Known allergies</label>
+        <input type="text" id="allergies" name="allergies" maxlength="255"
+               value="<c:out value='${patient.allergies}' />">
+        <span class="hint">Shown prominently on the patient record.</span>
+      </div>
+
+      <div class="field full">
+        <label for="medicalHistory">Medical history</label>
+        <textarea id="medicalHistory" name="medicalHistory" rows="4"><c:out value="${patient.medicalHistory}" /></textarea>
+      </div>
     </div>
 
     <div class="form-actions">

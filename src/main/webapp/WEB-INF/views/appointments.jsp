@@ -54,11 +54,13 @@
                 <div class="actions">
                   <c:if test="${a.status == 'SCHEDULED'}">
                     <form class="inline-form" method="post" action="${ctx}/appointments/status">
+                      <input type="hidden" name="csrfToken" value="${csrfToken}">
                       <input type="hidden" name="id" value="${a.id}">
                       <input type="hidden" name="status" value="COMPLETED">
                       <button class="btn-link" type="submit">Complete</button>
                     </form>
                     <form class="inline-form" method="post" action="${ctx}/appointments/status">
+                      <input type="hidden" name="csrfToken" value="${csrfToken}">
                       <input type="hidden" name="id" value="${a.id}">
                       <input type="hidden" name="status" value="CANCELLED">
                       <button class="btn-link danger" type="submit">Cancel</button>
@@ -66,7 +68,8 @@
                   </c:if>
                   <a class="btn-link" href="${ctx}/appointments/edit?id=${a.id}">Edit</a>
                   <form class="inline-form" method="post" action="${ctx}/appointments/delete"
-                        onsubmit="return confirm('Delete this appointment?');">
+                        data-confirm="Delete this appointment?">
+                    <input type="hidden" name="csrfToken" value="${csrfToken}">
                     <input type="hidden" name="id" value="${a.id}">
                     <button class="btn-link danger" type="submit">Delete</button>
                   </form>

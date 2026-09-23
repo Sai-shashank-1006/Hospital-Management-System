@@ -58,6 +58,33 @@ public class AppointmentDAO {
         }
     }
 
+    /** Upcoming appointments for one doctor, for their own dashboard. */
+    public List<Appointment> findUpcomingForDoctor(int doctorId, int limit) {
+        String sql = SELECT_WITH_NAMES
+                + "WHERE a.doctor_id = ? AND a.status = ? "
+                + "AND a.appointment_time >= CURRENT_TIMESTAMP "
+                + "ORDER BY a.appointment_time ASC LIMIT ?";
+
+        try (Connection c = dataSource.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+
+            ps.setInt(1, doctorId);
+            ps.setString(2, Appointment.STATUS_SCHEDULED);
+            ps.setInt(3, limit);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                List<Appointment> list = new ArrayList<>();
+                while (rs.next()) {
+                    list.add(map(rs));
+                }
+                return list;
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException(
+                    "Failed to list upcoming appointments for doctor " + doctorId, e);
+        }
+    }
+
     public Optional<Appointment> findById(int id) {
         String sql = SELECT_WITH_NAMES + "WHERE a.id = ?";
         try (Connection c = dataSource.getConnection();
