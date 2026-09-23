@@ -296,8 +296,35 @@ Tests run: 9, Failures: 0, Errors: 0, Skipped: 0 -- PatientDAOTest
 BUILD SUCCESS
 ```
 
-JaCoCo produces a coverage report at `target/site/jacoco/index.html`, published by
-Jenkins on each build.
+### 6.3 Coverage
+
+JaCoCo produces a report at `target/site/jacoco/index.html`, published by Jenkins on
+each build. Instruction coverage by package:
+
+| Package | Coverage | Notes |
+|---|---:|---|
+| `com.hms.model` | 79.6% | Covered through the DAO tests. |
+| `com.hms.config` | 78.5% | Resolution order and fallbacks. |
+| `com.hms.dao` | 77.6% | The main target of the test suite. |
+| `com.hms.web` | 0.0% | Servlets — see below. |
+| `com.hms.db` | 0.0% | Connection pool — see below. |
+| **Total** | **43.6%** | |
+
+The headline figure understates what is actually verified, and it is worth being
+precise about why. The unit tests deliberately target the DAO layer, which holds the
+SQL and the data rules. Servlets and the connection pool are not unit-tested because
+doing so meaningfully would require a servlet container and a real database — the
+mock-heavy alternative would largely test the mocks.
+
+Those layers are instead verified by **manual integration testing against the running
+Docker stack**, exercising every route through HTTP: page rendering with joined data,
+the POST-redirect-GET cycle, one-shot flash messages, search, server-side validation,
+double-booking rejection, cancelled-slot reuse, rejection of past-dated and
+unknown-status requests, HTML escaping of stored input, cascade deletes, the 404 page,
+and confirmation that JSPs under `WEB-INF` are not directly reachable. All passed.
+
+Section 11 lists automating that layer with Testcontainers as the natural next step,
+which would raise both the real and the reported coverage.
 
 ---
 
