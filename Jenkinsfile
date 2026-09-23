@@ -47,9 +47,11 @@ pipeline {
 
     agent any
 
-    tools {
-        jdk 'jdk17'
-        maven 'maven3'
+    environment {
+        // Use absolute paths to JDK and Maven - no Jenkins tool config needed
+        JAVA_HOME = 'C:\\Program Files\\Java\\jdk-25.0.4'
+        MAVEN_HOME = 'C:\\Users\\saish\\AppData\\Local\\Temp\\claude\\c--Users-saish-OneDrive-Desktop-Hospital-management-system\\51c33365-fd54-45a1-bd3e-63d5fef5e512\\scratchpad\\maven\\apache-maven-3.9.16'
+        PATH = "${env.MAVEN_HOME}\\bin;${env.JAVA_HOME}\\bin;${env.PATH}"
     }
 
     options {
