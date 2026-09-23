@@ -26,7 +26,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0d2436">
+  <meta name="theme-color" content="#1f6feb">
   <title>${empty pageTitle ? 'MediFlow' : pageTitle}</title>
   <link rel="stylesheet" href="${ctx}/css/style.css">
 </head>

@@ -6,7 +6,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0d2436">
+  <meta name="theme-color" content="#1f6feb">
   <title>Sign in &mdash; MediFlow</title>
   <link rel="stylesheet" href="${ctx}/css/style.css">
 </head>
@@ -18,6 +18,8 @@
        and a decorative column would only push it off the screen. --%>
   <aside class="auth-aside">
     <div class="brand">
+      <%-- Two marks on this page, so each needs its own gradient id. --%>
+      <c:set var="logoVariant" value="aside" />
       <%@ include file="fragments/logo.jspf" %>
       <span class="brand-text">Medi<span class="flow">Flow</span></span>
     </div>
@@ -39,6 +41,7 @@
   <section class="auth-main">
 
     <div class="brand auth-mobile-brand">
+      <c:set var="logoVariant" value="mobile" />
       <%@ include file="fragments/logo.jspf" %>
       <span class="brand-text">Medi<span class="flow">Flow</span></span>
     </div>

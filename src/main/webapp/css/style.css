@@ -52,6 +52,11 @@
   --blue-deep: #1a5ed4;
   --blue-wash: #e6efff;
 
+  /* The logo blob's blue, used for the "Medi" half of the wordmark. Kept as its
+     own token rather than reusing --blue, so retuning the UI's blue accent
+     cannot quietly change the brand. */
+  --brand-blue: #1f6feb;
+
   /* --white is literally white and never re-themed. Surfaces use --surface, so
      that a card and a thing that must actually be white (text on the dark
      sign-in panel, a label inside a coloured fill) cannot be confused. */
@@ -190,16 +195,17 @@ a {
   align-items: center;
   gap: 10px;
   text-decoration: none;
-  color: var(--ink);
+  color: var(--brand-blue);
   flex: none;
   padding: 2px 4px;
 }
 
+/* The mark is an organic blob, so it carries its own silhouette -- no radius
+   or background is applied to the SVG box. */
 .brand-logo {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   display: block;
-  border-radius: 12px;
   flex: none;
 }
 
@@ -1146,12 +1152,12 @@ textarea {
   overflow: hidden;
 }
 
-/* Left: brand panel */
+/* Left: brand panel. The gradient runs the logo's own blue into its teal. */
 .auth-aside {
   position: relative;
   padding: 44px 40px;
   color: var(--white);
-  background: linear-gradient(150deg, #0d2436 0%, #0e4e5c 55%, #0a8b7b 100%);
+  background: linear-gradient(150deg, #10256b 0%, #1b4fd0 52%, #0f9b8e 100%);
   display: flex;
   flex-direction: column;
   overflow: hidden;
