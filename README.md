@@ -327,6 +327,19 @@ Settings resolve in this order, first match wins:
 This is what lets one WAR run unchanged in local, Docker and Jenkins-deployed
 environments — only the environment differs, never the artifact.
 
+On a standalone Tomcat, put the variables in `<tomcat>/bin/setenv.bat` (Windows) or
+`setenv.sh`, which Tomcat reads on every start. For example, to use the MySQL container
+from `docker-compose.yml`:
+
+```bat
+set "DB_URL=jdbc:mysql://localhost:3307/hospital_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+set "DB_USERNAME=hms_user"
+set "DB_PASSWORD=hms_password"
+```
+
+Quote the whole `set "NAME=value"`, or the `&` characters in the URL are read as
+command separators.
+
 > **Security note.** The credentials in this repository are development defaults.
 > For anything real, inject them as environment variables (or Jenkins credentials)
 > and keep them out of version control.

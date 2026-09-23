@@ -8,18 +8,18 @@
 // Required Jenkins configuration:
 //
 //   Manage Jenkins > Tools
-//     - JDK installation        named 'jdk17'
+//     - JDK installation        named 'jdk17'  (any JDK 17 or newer; the code targets Java 17)
 //     - Maven installation      named 'maven3'
 //
 //   Manage Jenkins > Credentials  ("Username with password")
 //     - ID 'tomcat-manager' : a user holding the manager-script role in tomcat-users.xml
 //
 //   Manage Jenkins > Plugins
-//     - Pipeline Utility / HTML Publisher (for the coverage report), JUnit, Git
+//     - HTML Publisher (for the coverage report), JUnit, Git, Timestamper, Workspace Cleanup
 //
-//   Pipeline job > Build Triggers
-//     - "GitHub hook trigger for GITScm polling", with a matching webhook on the
-//       GitHub repository pointing at http://<jenkins-host>/github-webhook/
+// Builds are triggered by polling GitHub every five minutes (see `triggers` below),
+// because a Jenkins on localhost cannot receive GitHub's webhooks. On a Jenkins that
+// GitHub can reach, a webhook to http://<jenkins-host>/github-webhook/ is faster.
 
 /** Runs a command on whichever platform the agent is, failing the build on a non-zero exit. */
 def runCmd(String command) {
@@ -43,15 +43,32 @@ def capture(String command) {
     }
 }
 
+/**
+ * True when this build is of the mainline.
+ *
+ * Declarative's `when { branch 'main' }` reads BRANCH_NAME, which only Multibranch
+ * jobs set. In a plain "Pipeline script from SCM" job it is null, so that condition
+ * is always false and every deploy stage is silently skipped. Fall back to the branch
+ * Git actually checked out, which arrives as "origin/main".
+ */
+def isMainline() {
+    def branch = env.BRANCH_NAME ?: env.CHECKED_OUT_BRANCH ?: ''
+    return branch == 'main' || branch.endsWith('/main')
+}
+
 pipeline {
 
     agent any
 
-    environment {
-        // Use absolute paths to JDK and Maven - no Jenkins tool config needed
-        JAVA_HOME = 'C:\\Program Files\\Java\\jdk-25.0.4'
-        MAVEN_HOME = 'C:\\Users\\saish\\AppData\\Local\\Temp\\claude\\c--Users-saish-OneDrive-Desktop-Hospital-management-system\\51c33365-fd54-45a1-bd3e-63d5fef5e512\\scratchpad\\maven\\apache-maven-3.9.16'
-        PATH = "${env.MAVEN_HOME}\\bin;${env.JAVA_HOME}\\bin;${env.PATH}"
+    // Machine-specific paths live in Manage Jenkins > Tools, not here, so this file
+    // runs unchanged on any Jenkins that defines these two names.
+    tools {
+        jdk 'jdk17'
+        maven 'maven3'
+    }
+
+    triggers {
+        pollSCM('H/5 * * * *')
     }
 
     options {
@@ -59,6 +76,8 @@ pipeline {
         buildDiscarder(logRotator(numToKeepStr: '15'))
         timeout(time: 20, unit: 'MINUTES')
         disableConcurrentBuilds()
+        // The Checkout stage below does the one checkout, and records what it got.
+        skipDefaultCheckout()
     }
 
     environment {
@@ -76,11 +95,13 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                checkout scm
                 script {
+                    def scmVars = checkout scm
+                    env.CHECKED_OUT_BRANCH = scmVars.GIT_BRANCH ?: ''
+
                     // Record the commit under test, so a build in the history can be
                     // traced back to a change without digging through logs.
-                    def sha = env.GIT_COMMIT ? env.GIT_COMMIT.take(7) : 'unknown'
+                    def sha = scmVars.GIT_COMMIT ? scmVars.GIT_COMMIT.take(7) : 'unknown'
                     currentBuild.description = "commit ${sha}"
                 }
             }
@@ -124,7 +145,7 @@ pipeline {
         stage('Deploy to Tomcat') {
             // Only the mainline is deployed; feature branches stop after packaging.
             when {
-                branch 'main'
+                expression { isMainline() }
             }
             steps {
                 // Keep the WAR that is currently live before replacing it. Without
@@ -173,7 +194,7 @@ pipeline {
 
         stage('Smoke test') {
             when {
-                branch 'main'
+                expression { isMainline() }
             }
             steps {
                 script {
@@ -206,7 +227,7 @@ pipeline {
 
         stage('Promote') {
             when {
-                branch 'main'
+                expression { isMainline() }
             }
             steps {
                 // The smoke test passed, so this WAR becomes the one a future
@@ -236,9 +257,8 @@ pipeline {
                 // then failed its smoke test. A compile or test failure never got
                 // that far, so redeploying over a healthy server would be wrong.
                 boolean deployed = currentBuild.result == 'FAILURE' && env.ROLLBACK_WAR
-                boolean onMain = env.BRANCH_NAME == null || env.BRANCH_NAME == 'main'
 
-                if (deployed && onMain) {
+                if (deployed && isMainline()) {
                     echo "Deployment failed its smoke test. Rolling back to the last known-good WAR."
 
                     withCredentials([
