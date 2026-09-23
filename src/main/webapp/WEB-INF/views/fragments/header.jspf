@@ -173,20 +173,42 @@
 
     </ul>
 
-    <div class="account">
-      <%-- The name beside the avatar is hidden on narrower screens, so the
-           avatar itself carries the full name for hover and assistive tech. --%>
-      <span class="avatar" title="<c:out value='${currentUser.fullName}' /> (<c:out value='${currentUser.role.label}' />)"><c:out value="${currentUser.initials}" /></span>
-      <span class="account-meta" title="<c:out value='${currentUser.fullName}' /> (<c:out value='${currentUser.role.label}' />)">
-        <span class="account-name"><c:out value="${currentUser.fullName}" /></span>
-        <span class="account-role"><c:out value="${currentUser.role.label}" /></span>
-      </span>
-      <%-- Sign-out is a POST carrying the CSRF token, so another site cannot
-           trigger it with a link or an image tag. --%>
-      <form method="post" action="${ctx}/logout" class="inline-form">
-        <input type="hidden" name="csrfToken" value="${csrfToken}">
-        <button class="btn-link" type="submit">Sign out</button>
-      </form>
+    <%-- The account menu is a .nav-item so app.js wires its open/close with the
+         navigation dropdowns; only the avatar and caret sit in the bar, because
+         the name, role and sign-out button previously needed ~220px that the
+         pill does not have once an administrator's eight menu entries are in
+         it -- which is what pushed the sign-out control outside the bar. --%>
+    <div class="account nav-item">
+      <button type="button" class="account-toggle" aria-expanded="false" aria-haspopup="true"
+              title="<c:out value='${currentUser.fullName}' /> (<c:out value='${currentUser.role.label}' />)">
+        <span class="avatar"><c:out value="${currentUser.initials}" /></span>
+        <span class="sr-only">Account menu for <c:out value="${currentUser.fullName}" /></span>
+        <svg class="caret" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+          <path d="M2 4.5 L6 8.5 L10 4.5" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+
+      <ul class="dropdown dropdown--end account-menu">
+        <li class="account-card">
+          <span class="avatar avatar-lg" aria-hidden="true"><c:out value="${currentUser.initials}" /></span>
+          <span class="account-card-text">
+            <span class="account-name"><c:out value="${currentUser.fullName}" /></span>
+            <span class="account-role"><c:out value="${currentUser.role.label}" /></span>
+          </span>
+        </li>
+        <li>
+          <%-- Sign-out is a POST carrying the CSRF token, so another site cannot
+               trigger it with a link or an image tag. --%>
+          <form method="post" action="${ctx}/logout" class="inline-form">
+            <input type="hidden" name="csrfToken" value="${csrfToken}">
+            <button class="dd-action" type="submit">
+              <span class="dd-icon" aria-hidden="true">&#8635;</span>
+              <span>Sign out<span class="dd-sub">End this session</span></span>
+            </button>
+          </form>
+        </li>
+      </ul>
     </div>
 
   </div>

@@ -181,7 +181,7 @@ a {
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 10px;
   padding: 10px 16px;
   border-radius: var(--r-pill);
   background: rgba(255, 255, 255, 0.86);
@@ -249,15 +249,15 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 15px;
+  padding: 8px 11px;
   border: 0;
   border-radius: var(--r-pill);
   background: transparent;
   color: var(--ink-2);
   font-family: var(--font-display);
-  font-size: 0.83rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   text-decoration: none;
   white-space: nowrap;
@@ -324,9 +324,27 @@ a {
   transform: translateX(-50%) translateY(0);
 }
 
+/* The account menu sits at the right end of the bar, so it hangs from that
+   edge instead of being centred on its trigger -- centring would push half the
+   panel past the pill and off the window. */
+.dropdown--end {
+  left: auto;
+  right: 0;
+  transform: translateY(-6px);
+}
+
+.nav-item:hover > .dropdown--end,
+.nav-item:focus-within > .dropdown--end,
+.nav-item.open > .dropdown--end {
+  transform: translateY(0);
+}
+
 .nav-item:hover > .nav-toggle .caret,
 .nav-item:focus-within > .nav-toggle .caret,
-.nav-item.open > .nav-toggle .caret {
+.nav-item.open > .nav-toggle .caret,
+.nav-item:hover > .account-toggle .caret,
+.nav-item:focus-within > .account-toggle .caret,
+.nav-item.open > .account-toggle .caret {
   transform: rotate(180deg);
 }
 
@@ -383,15 +401,40 @@ a {
   letter-spacing: 0;
 }
 
-/* ---- Account chip ---- */
+/* ---- Account menu ----
+   Only the avatar and its caret live in the bar. The name, role and the
+   sign-out button are in the panel below, because carrying them inline cost
+   about 220px that the 1180px pill does not have once an administrator's
+   eight menu entries are in it. */
 
 .account {
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding-left: 12px;
   flex: none;
-  min-width: 0;
+  padding-left: 4px;
+}
+
+.account-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px 3px 3px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: background 0.18s ease;
+}
+
+.account-toggle:hover,
+.nav-item.open > .account-toggle {
+  background: var(--teal-wash);
+}
+
+.account-toggle:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
 }
 
 .avatar {
@@ -409,14 +452,34 @@ a {
   box-shadow: var(--clay-teal);
 }
 
-.account-meta {
+.avatar-lg {
+  width: 44px;
+  height: 44px;
+  font-size: 0.95rem;
+}
+
+.account-menu {
+  min-width: 248px;
+  padding: 8px;
+}
+
+/* Who is signed in, shown once at the top of the panel. Set off by an inset
+   strip rather than a rule: this design separates with surface, not lines. */
+.account-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 12px;
+  margin-bottom: 6px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+
+.account-card-text {
   display: flex;
   flex-direction: column;
-  line-height: 1.25;
+  line-height: 1.3;
   min-width: 0;
-  /* A long staff name must not push the chip out past the pill's edge, so it
-     truncates rather than overflowing. The full name is still in the title. */
-  max-width: 140px;
 }
 
 .account-name,
@@ -428,13 +491,44 @@ a {
 
 .account-name {
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.92rem;
   color: var(--ink);
 }
 
 .account-role {
-  font-size: 0.74rem;
+  font-size: 0.78rem;
   color: var(--ink-3);
+}
+
+/* The sign-out control is a submit button inside a POST form, so it cannot be
+   an <a>; this gives it the same footprint as the anchors in the menus. */
+.account-menu .inline-form {
+  display: block;
+}
+
+.dd-action {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink-2);
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.dd-action:hover,
+.dd-action:focus-visible {
+  background: var(--teal-wash);
+  color: var(--ink);
+  outline: none;
 }
 
 .nav-burger {
@@ -1360,26 +1454,12 @@ textarea {
   }
 }
 
-/* An administrator sees eight menu entries plus the brand and the account
-   chip, which is the widest the bar ever gets. Tighten the items before that
-   runs out of room, rather than letting the chip spill past the pill.
+/* The bar's own width is capped at 1180px, so it stops growing long before
+   the window does. These tiers therefore tighten a bar that is already at its
+   full width -- they are not reacting to a narrowing bar. Anything that has to
+   fit the widest case (an administrator's eight entries plus the brand and the
+   account button) belongs in the base rules above, not here.
    Note: no overflow:hidden on .navshell -- it would clip the dropdowns. */
-@media (max-width: 1460px) {
-  .navshell {
-    gap: 10px;
-  }
-
-  .nav-link,
-  .nav-toggle {
-    padding: 8px 11px;
-    font-size: 0.78rem;
-    letter-spacing: 0.04em;
-  }
-
-  .account-meta {
-    max-width: 104px;
-  }
-}
 
 @media (max-width: 1240px) {
   .navshell {
@@ -1406,10 +1486,6 @@ textarea {
    still identifies who is signed in and its title carries the full name; the
    logo mark still identifies the product without the word beside it. */
 @media (max-width: 1060px) {
-  .account-meta {
-    display: none;
-  }
-
   .topbar .brand-text {
     display: none;
   }
@@ -1469,6 +1545,29 @@ textarea {
     display: block;
     transform: none;
     pointer-events: auto;
+  }
+
+  /* The account panel is the exception: its button sits in the bar's top row,
+     not in the scrolling menu strip, so it keeps floating over the page. Going
+     inline like the navigation menus would push the bar open instead. */
+  .dropdown--end {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    left: auto;
+    display: block;
+    min-width: 232px;
+    padding: 8px;
+    box-shadow: var(--clay);
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .nav-item:hover > .dropdown--end,
+  .nav-item:focus-within > .dropdown--end,
+  .nav-item.open > .dropdown--end {
+    opacity: 1;
+    visibility: visible;
   }
 }
 

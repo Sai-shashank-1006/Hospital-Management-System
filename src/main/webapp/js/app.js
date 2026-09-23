@@ -64,6 +64,9 @@
      closing when focus or the pointer leaves -- and it keeps aria-expanded
      truthful, which CSS alone cannot do. */
   function wireDropdowns(root) {
+    // The account menu uses its own trigger class but is otherwise an ordinary
+    // .nav-item, so it is wired by the same code.
+    var TOGGLE = '.nav-toggle, .account-toggle';
     var items = root.querySelectorAll('.nav-item');
 
     function closeAll(except) {
@@ -72,7 +75,7 @@
           return;
         }
         item.classList.remove('open');
-        var toggle = item.querySelector('.nav-toggle');
+        var toggle = item.querySelector(TOGGLE);
         if (toggle) {
           toggle.setAttribute('aria-expanded', 'false');
         }
@@ -80,7 +83,7 @@
     }
 
     items.forEach(function (item) {
-      var toggle = item.querySelector('.nav-toggle');
+      var toggle = item.querySelector(TOGGLE);
       if (!toggle || toggle.dataset.ddWired) {
         return;
       }
