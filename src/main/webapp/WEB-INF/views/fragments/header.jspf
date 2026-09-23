@@ -4,11 +4,15 @@
   Shared page chrome for signed-in pages.
 
   Navigation asks Role.canAccess() for each item, which is the same method
-  AuthFilter uses to allow or deny the request. A hidden menu entry and a blocked
-  URL therefore can never disagree -- hiding the link is only a convenience.
+  AuthFilter uses to allow or deny the request. A hidden menu entry and a
+  blocked URL therefore cannot disagree -- hiding the link is a convenience,
+  the filter is the control.
 
-  Flash messages are read from the session and immediately removed, so refreshing
-  the page does not show them again.
+  Dropdowns open on hover AND on :focus-within, so they are reachable by
+  keyboard before app.js loads; app.js then adds click-toggle and Escape.
+
+  Flash messages are read from the session and immediately removed, so
+  refreshing the page does not show them again.
 --%>
 <c:set var="ctx" value="${pageContext.request.contextPath}" />
 <c:set var="currentUser" value="${sessionScope.currentUser}" />
@@ -22,47 +26,158 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${empty pageTitle ? 'Hospital Management System' : pageTitle}</title>
+  <meta name="theme-color" content="#0d2436">
+  <title>${empty pageTitle ? 'MediFlow' : pageTitle}</title>
   <link rel="stylesheet" href="${ctx}/css/style.css">
 </head>
 <body>
 
 <header class="topbar">
-  <div class="wrap topbar-inner">
+  <div class="navshell">
+
     <a class="brand" href="${ctx}/dashboard">
-      <span class="brand-mark" aria-hidden="true">+</span>
-      <span>Hospital Management System</span>
+      <%@ include file="logo.jspf" %>
+      <span class="brand-text">Medi<span class="flow">Flow</span></span>
     </a>
 
-    <nav class="nav">
-      <a href="${ctx}/dashboard" class="${activeNav == 'dashboard' ? 'active' : ''}">Dashboard</a>
+    <ul class="nav">
+
+      <li class="nav-item">
+        <a href="${ctx}/dashboard"
+           class="nav-link ${activeNav == 'dashboard' ? 'active' : ''}">Dashboard</a>
+      </li>
 
       <c:if test="${currentUser.role.canAccess('/patients')}">
-        <a href="${ctx}/patients/" class="${activeNav == 'patients' ? 'active' : ''}">Patients</a>
+        <li class="nav-item ${activeNav == 'patients' ? 'active' : ''}">
+          <button type="button" class="nav-toggle" aria-expanded="false" aria-haspopup="true">
+            Patients
+            <svg class="caret" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+              <path d="M2 4.5 L6 8.5 L10 4.5" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <ul class="dropdown">
+            <li><a href="${ctx}/patients/">
+              <span class="dd-icon" aria-hidden="true">&#128203;</span>
+              <span>All patients<span class="dd-sub">Browse and search records</span></span>
+            </a></li>
+            <li><a href="${ctx}/patients/new">
+              <span class="dd-icon" aria-hidden="true">&#10133;</span>
+              <span>Register patient<span class="dd-sub">Add a new record</span></span>
+            </a></li>
+          </ul>
+        </li>
       </c:if>
+
       <c:if test="${currentUser.role.canAccess('/doctors')}">
-        <a href="${ctx}/doctors/" class="${activeNav == 'doctors' ? 'active' : ''}">Doctors</a>
+        <li class="nav-item ${activeNav == 'doctors' ? 'active' : ''}">
+          <button type="button" class="nav-toggle" aria-expanded="false" aria-haspopup="true">
+            Doctors
+            <svg class="caret" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+              <path d="M2 4.5 L6 8.5 L10 4.5" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <ul class="dropdown">
+            <li><a href="${ctx}/doctors/">
+              <span class="dd-icon" aria-hidden="true">&#129658;</span>
+              <span>Consulting roster<span class="dd-sub">Schedules and availability</span></span>
+            </a></li>
+            <li><a href="${ctx}/doctors/new">
+              <span class="dd-icon" aria-hidden="true">&#10133;</span>
+              <span>Add doctor<span class="dd-sub">New roster entry</span></span>
+            </a></li>
+          </ul>
+        </li>
       </c:if>
+
       <c:if test="${currentUser.role.canAccess('/appointments')}">
-        <a href="${ctx}/appointments/" class="${activeNav == 'appointments' ? 'active' : ''}">Appointments</a>
+        <li class="nav-item ${activeNav == 'appointments' ? 'active' : ''}">
+          <button type="button" class="nav-toggle" aria-expanded="false" aria-haspopup="true">
+            Appointments
+            <svg class="caret" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+              <path d="M2 4.5 L6 8.5 L10 4.5" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <ul class="dropdown">
+            <li><a href="${ctx}/appointments/">
+              <span class="dd-icon" aria-hidden="true">&#128197;</span>
+              <span>All appointments<span class="dd-sub">Every booking</span></span>
+            </a></li>
+            <li><a href="${ctx}/appointments/new">
+              <span class="dd-icon" aria-hidden="true">&#10133;</span>
+              <span>Book appointment<span class="dd-sub">Schedule a consultation</span></span>
+            </a></li>
+          </ul>
+        </li>
       </c:if>
+
       <c:if test="${currentUser.role.canAccess('/prescriptions')}">
-        <a href="${ctx}/prescriptions/" class="${activeNav == 'prescriptions' ? 'active' : ''}">Prescriptions</a>
+        <li class="nav-item ${activeNav == 'prescriptions' ? 'active' : ''}">
+          <button type="button" class="nav-toggle" aria-expanded="false" aria-haspopup="true">
+            Prescriptions
+            <svg class="caret" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+              <path d="M2 4.5 L6 8.5 L10 4.5" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <ul class="dropdown">
+            <li><a href="${ctx}/prescriptions/">
+              <span class="dd-icon" aria-hidden="true">&#128138;</span>
+              <span>All prescriptions<span class="dd-sub">Issued medicines</span></span>
+            </a></li>
+            <li><a href="${ctx}/prescriptions/new">
+              <span class="dd-icon" aria-hidden="true">&#9997;</span>
+              <span>Write prescription<span class="dd-sub">Record a consultation</span></span>
+            </a></li>
+          </ul>
+        </li>
       </c:if>
+
       <c:if test="${currentUser.role.canAccess('/invoices')}">
-        <a href="${ctx}/invoices/" class="${activeNav == 'invoices' ? 'active' : ''}">Billing</a>
+        <li class="nav-item ${activeNav == 'invoices' ? 'active' : ''}">
+          <button type="button" class="nav-toggle" aria-expanded="false" aria-haspopup="true">
+            Billing
+            <svg class="caret" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+              <path d="M2 4.5 L6 8.5 L10 4.5" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <ul class="dropdown">
+            <li><a href="${ctx}/invoices/">
+              <span class="dd-icon" aria-hidden="true">&#129534;</span>
+              <span>All invoices<span class="dd-sub">Paid and outstanding</span></span>
+            </a></li>
+            <li><a href="${ctx}/invoices/new">
+              <span class="dd-icon" aria-hidden="true">&#10133;</span>
+              <span>New invoice<span class="dd-sub">Raise a bill</span></span>
+            </a></li>
+          </ul>
+        </li>
       </c:if>
+
       <c:if test="${currentUser.role.canAccess('/reports')}">
-        <a href="${ctx}/reports/" class="${activeNav == 'reports' ? 'active' : ''}">Reports</a>
+        <li class="nav-item">
+          <a href="${ctx}/reports/"
+             class="nav-link ${activeNav == 'reports' ? 'active' : ''}">Reports</a>
+        </li>
       </c:if>
+
       <c:if test="${currentUser.role.canAccess('/users')}">
-        <a href="${ctx}/users/" class="${activeNav == 'users' ? 'active' : ''}">Staff</a>
+        <li class="nav-item">
+          <a href="${ctx}/users/"
+             class="nav-link ${activeNav == 'users' ? 'active' : ''}">Staff</a>
+        </li>
       </c:if>
-    </nav>
+
+    </ul>
 
     <div class="account">
-      <span class="avatar" aria-hidden="true"><c:out value="${currentUser.initials}" /></span>
-      <span class="account-meta">
+      <%-- The name beside the avatar is hidden on narrower screens, so the
+           avatar itself carries the full name for hover and assistive tech. --%>
+      <span class="avatar" title="<c:out value='${currentUser.fullName}' /> (<c:out value='${currentUser.role.label}' />)"><c:out value="${currentUser.initials}" /></span>
+      <span class="account-meta" title="<c:out value='${currentUser.fullName}' /> (<c:out value='${currentUser.role.label}' />)">
         <span class="account-name"><c:out value="${currentUser.fullName}" /></span>
         <span class="account-role"><c:out value="${currentUser.role.label}" /></span>
       </span>
@@ -73,6 +188,7 @@
         <button class="btn-link" type="submit">Sign out</button>
       </form>
     </div>
+
   </div>
 </header>
 

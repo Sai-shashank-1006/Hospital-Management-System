@@ -2,7 +2,8 @@
 
 <footer class="footer">
   <div class="wrap">
-    <span>Hospital Management System &mdash; built with Maven, deployed by Jenkins to Apache Tomcat.</span>
+    <span class="brand-text">Medi<span class="flow">Flow</span></span>
+    &nbsp;&middot;&nbsp; Built with Maven, deployed by Jenkins to Apache Tomcat.
   </div>
 </footer>
 

@@ -1,0 +1,16 @@
+<%--
+  MediFlow mark.
+
+  Inline SVG rather than an image file: it stays sharp at any size, adds no
+  extra request, and costs under a kilobyte. The tile colour is fixed so the
+  mark keeps its identity on both the light page and the dark sign-in panel.
+--%>
+<svg class="brand-logo" viewBox="0 0 64 64" role="img" aria-label="MediFlow" focusable="false">
+  <rect width="64" height="64" rx="18" fill="#0d2436"/>
+  <!-- Medical cross -->
+  <rect x="20.5" y="12" width="11" height="34" rx="5.5" fill="#ffffff"/>
+  <rect x="9" y="23.5" width="34" height="11" rx="5.5" fill="#ffffff"/>
+  <!-- The "flow" curve leaving the cross -->
+  <path d="M30 29 C 41 29, 38 48, 49 48"
+        fill="none" stroke="#17bfae" stroke-width="9" stroke-linecap="round"/>
+</svg>

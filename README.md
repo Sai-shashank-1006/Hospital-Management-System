@@ -1,9 +1,31 @@
-# Hospital Management System
+# MediFlow — Hospital Management System
 
-A Java web application for managing patients, doctors and appointments, built and
-deployed through a DevOps pipeline: **GitHub → Jenkins → Maven → Apache Tomcat**.
+A Java web application for managing patients, doctors, appointments, prescriptions
+and billing, built and deployed through a DevOps pipeline:
+**GitHub → Jenkins → Maven → Apache Tomcat**.
 
 The application is a classic Servlet/JSP web app packaged as a WAR, backed by MySQL.
+
+## Interface
+
+The UI is a **claymorphism** design system — soft, inflated surfaces in green, blue
+and bright white. Clay is built from three shadows on one element: an outer drop
+shadow that lifts the shape, an inset light shadow for the top-left highlight, and
+an inset dark shadow for the bottom-right shading. Borders are avoided, because a
+hairline drawn on top of that makes the shape read as flat again. Buttons come *out*
+of the surface and press *in* when clicked; inputs are pressed in at rest.
+
+| Piece | Notes |
+|---|---|
+| **Typography** | Quicksand for headings, navigation and the brand; Nunito Sans for body text. Both are self-hosted variable fonts (one 30 KB file each), so they load under the app's own CSP, work offline, and make no third-party request. |
+| **Navigation** | A floating, sticky pill with the MediFlow mark, role-filtered menu, and dropdowns for Patients, Doctors, Appointments, Prescriptions and Billing. |
+| **Dropdowns** | Open on hover *and* `:focus-within`, so they work by keyboard with JavaScript blocked. `app.js` then adds click-toggle, Escape to close, and keeps `aria-expanded` truthful. |
+| **Logo** | Inline SVG — sharp at any size, no extra request, under a kilobyte. |
+| **Sign-in** | A split SaaS layout: brand panel on the left, form on the right, collapsing to the form alone below 1000px. |
+
+The palette is not switched by `prefers-color-scheme`: the design is a bright,
+white-surfaced one by intent, and `color-scheme: light` keeps form controls light
+for a viewer whose OS is set to dark.
 
 ---
 

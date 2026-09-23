@@ -1,6 +1,6 @@
-<%@ page contentType="text/html;charset=UTF-8" isErrorPage="true" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" isErrorPage="true" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<c:set var="pageTitle" value="Something went wrong - Hospital Management System" />
+<c:set var="pageTitle" value="Something went wrong — MediFlow" />
 <%@ include file="fragments/header.jspf" %>
 
 <div class="page-head">

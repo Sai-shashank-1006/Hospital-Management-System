@@ -1,7 +1,7 @@
-<%@ page contentType="text/html;charset=UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <c:set var="editing" value="${doctor.id > 0}" />
-<c:set var="pageTitle" value="${editing ? 'Edit doctor' : 'Add doctor'} - Hospital Management System" />
+<c:set var="pageTitle" value="${editing ? 'Edit doctor' : 'Add doctor'} — MediFlow" />
 <%@ include file="fragments/header.jspf" %>
 
 <div class="page-head">

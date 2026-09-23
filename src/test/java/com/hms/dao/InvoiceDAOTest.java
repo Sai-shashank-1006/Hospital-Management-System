@@ -168,6 +168,21 @@ class InvoiceDAOTest {
     }
 
     @Test
+    @DisplayName("status totals come back at two decimal places, ready to display")
+    void sumIsScaledForDisplay() {
+        // Regression guard. The tax multiplication divides by 100, which left the
+        // driver's own scale on the result and rendered as "2205.00000000" on the
+        // dashboard. Rounding belongs here, not in each view that shows a total.
+        dao.insert(invoice("Consultation", "900.00", "Ambulatory BP monitoring", "1200.00"));
+
+        BigDecimal outstanding = dao.sumTotalByStatus(Invoice.STATUS_UNPAID);
+
+        assertEquals(2, outstanding.scale(), "money should be scaled to two places");
+        assertEquals("2205.00", outstanding.toPlainString());
+        assertEquals("0.00", dao.sumTotalByStatus(Invoice.STATUS_PAID).toPlainString());
+    }
+
+    @Test
     @DisplayName("listing loads the charges, so totals are correct in the list view")
     void listLoadsItems() {
         dao.insert(invoice("Consultation", "900.00", "ECG", "450.00"));

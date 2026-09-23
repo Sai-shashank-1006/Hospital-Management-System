@@ -58,9 +58,68 @@
     });
   }
 
+  /* Navigation dropdowns.
+     CSS already opens these on :hover and :focus-within, so they work with this
+     script blocked. What JS adds is a click/tap toggle, Escape to close, and
+     closing when focus or the pointer leaves -- and it keeps aria-expanded
+     truthful, which CSS alone cannot do. */
+  function wireDropdowns(root) {
+    var items = root.querySelectorAll('.nav-item');
+
+    function closeAll(except) {
+      items.forEach(function (item) {
+        if (item === except) {
+          return;
+        }
+        item.classList.remove('open');
+        var toggle = item.querySelector('.nav-toggle');
+        if (toggle) {
+          toggle.setAttribute('aria-expanded', 'false');
+        }
+      });
+    }
+
+    items.forEach(function (item) {
+      var toggle = item.querySelector('.nav-toggle');
+      if (!toggle || toggle.dataset.ddWired) {
+        return;
+      }
+      toggle.dataset.ddWired = '1';
+
+      toggle.addEventListener('click', function (event) {
+        event.preventDefault();
+        var willOpen = !item.classList.contains('open');
+        closeAll(item);
+        item.classList.toggle('open', willOpen);
+        toggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      });
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
+        closeAll(null);
+      }
+    });
+
+    document.addEventListener('click', function (event) {
+      if (!event.target.closest('.nav-item')) {
+        closeAll(null);
+      }
+    });
+
+    // Leaving the bar entirely closes whatever was pinned open by a click.
+    var shell = root.querySelector('.navshell');
+    if (shell) {
+      shell.addEventListener('mouseleave', function () {
+        closeAll(null);
+      });
+    }
+  }
+
   function init() {
     wireConfirms(document);
     wireRowAdders(document);
+    wireDropdowns(document);
   }
 
   if (document.readyState === 'loading') {

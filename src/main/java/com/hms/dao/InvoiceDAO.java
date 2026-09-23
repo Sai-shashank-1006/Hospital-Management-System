@@ -5,6 +5,7 @@ import com.hms.model.InvoiceItem;
 
 import javax.sql.DataSource;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -244,7 +245,15 @@ public class InvoiceDAO {
 
             ps.setString(1, status);
             try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? rs.getBigDecimal(1) : BigDecimal.ZERO;
+                BigDecimal total = rs.next() ? rs.getBigDecimal(1) : BigDecimal.ZERO;
+                if (total == null) {
+                    return BigDecimal.ZERO;
+                }
+                // Dividing by 100 for the tax leaves the driver's own scale on the
+                // result, which surfaced in the UI as "2205.00000000". Money is
+                // rounded to two places here, at the edge of the data layer, so
+                // every caller gets a value that is already fit to display.
+                return total.setScale(2, RoundingMode.HALF_UP);
             }
         } catch (SQLException e) {
             throw new DataAccessException("Failed to total invoices", e);

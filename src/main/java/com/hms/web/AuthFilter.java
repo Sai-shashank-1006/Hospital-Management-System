@@ -43,8 +43,13 @@ public class AuthFilter implements Filter {
      */
     private static final List<String> AUTHENTICATED_PATHS = List.of("/logout");
 
-    /** Static assets, served before the session check so the login page can be styled. */
-    private static final List<String> PUBLIC_PREFIXES = List.of("/css/", "/js/", "/images/");
+    /**
+     * Static assets, served before the session check so the sign-in page can be
+     * styled. Fonts belong here too: without them the sign-in page falls back to
+     * a system face, which is the one page guaranteed to be seen signed out.
+     */
+    private static final List<String> PUBLIC_PREFIXES =
+            List.of("/css/", "/js/", "/fonts/", "/images/");
 
     private static final Set<String> SAFE_METHODS = Set.of("GET", "HEAD", "OPTIONS");
 
